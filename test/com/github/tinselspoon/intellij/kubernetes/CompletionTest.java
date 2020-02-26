@@ -1,13 +1,12 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
-import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase;
-
+import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import java.util.List;
 
 /**
  * Unit tests for the {@link KubernetesYamlCompletionContributor}.
  */
-public class CompletionTest extends LightCodeInsightFixtureTestCase {
+public class CompletionTest extends BasePlatformTestCase {
 
     @Override
     protected String getTestDataPath() {

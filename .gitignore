@@ -2,3 +2,4 @@
 out/
 *.jar
 intellij-kubernetes.zip
+/.gradle/
