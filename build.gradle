@@ -11,26 +11,8 @@ sourceCompatibility = 1.8
 repositories {
     mavenCentral()
 }
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src']
-        }
-        resources {
-            srcDirs = ['resources']
-        }
-    }
-    test {
-        java {
-            srcDirs = ['test']
-        }
-        resources {
-            srcDirs = ['testData']
-        }
-    }
-}
-dependencies {
 
+dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
