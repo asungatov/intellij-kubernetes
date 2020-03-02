@@ -7,7 +7,7 @@ spec:
   selector:
     app: test
     another: label
-    <error descr="Duplicated property 'another'">another:</error> duplicated
+    <error descr="Duplicated property 'another'">another</error>: duplicated
   template:
     spec:
       serviceAccountName: serviceaccount

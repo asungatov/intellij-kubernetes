@@ -10,7 +10,7 @@ spec:
   template:
     spec:
       serviceAccountName: serviceaccount
-      <warning descr="Property 'property' is not expected here.">property:</warning> not in model
+      <warning descr="Property 'property' is not expected here.">property</warning>: not in model
       containers:
         - name: container1
           image: busybox

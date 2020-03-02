@@ -1,11 +1,11 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
-import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase;
+import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 
 /**
  * Tests for the {@link com.github.tinselspoon.intellij.kubernetes.codeInsight} annotators.
  */
-public class CodeInsightAnnotatorTest extends LightCodeInsightFixtureTestCase {
+public class CodeInsightAnnotatorTest extends BasePlatformTestCase {
 
     @Override
     protected String getTestDataPath() {
