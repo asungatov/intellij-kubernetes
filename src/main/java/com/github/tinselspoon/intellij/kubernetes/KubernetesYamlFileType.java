@@ -76,7 +76,7 @@ public class KubernetesYamlFileType extends LanguageFileType implements FileType
             return false; // Helps New -> File get correct file type
         }
 
-        return recursionGuard.doPreventingRecursion(GUARD_ID, true, () -> {
+        return (boolean) recursionGuard.doPreventingRecursion(GUARD_ID, true, () -> {
             if (file.isValid()) {
                 final String extension = file.getExtension();
                 if ("yml".equalsIgnoreCase(extension) || "yaml".equalsIgnoreCase(extension)) {
