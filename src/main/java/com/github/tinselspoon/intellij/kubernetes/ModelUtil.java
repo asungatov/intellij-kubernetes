@@ -1,19 +1,22 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
-import java.util.Objects;
-
-import org.jetbrains.annotations.NotNull;
 
 import com.github.tinselspoon.intellij.kubernetes.model.ArrayItems;
 import com.github.tinselspoon.intellij.kubernetes.model.FieldType;
 import com.github.tinselspoon.intellij.kubernetes.model.Property;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utilities for working with model classes.
  */
 final class ModelUtil {
 
-    /** Static class private constructor. */
+    private static final String DEFAULT = "unknown";
+
+    /**
+     * Static class private constructor.
+     */
     private ModelUtil() {
     }
 
@@ -31,9 +34,9 @@ final class ModelUtil {
         final String typeText;
         final ArrayItems items = propertySpec.getItems();
         if (propertySpec.getType() == FieldType.ARRAY && items != null) {
-            typeText = (items.getRef() == null ? Objects.toString(items.getType(), "unknwon") : items.getRef()) + "[]";
+            typeText = Objects.toString(items.getRef(), Objects.toString(items.getType(), DEFAULT)) + "[]";
         } else {
-            typeText = propertySpec.getRef() == null ? Objects.toString(propertySpec.getType(), "unknown") : propertySpec.getRef();
+            typeText = Objects.toString(propertySpec.getRef(), Objects.toString(propertySpec.getType(), DEFAULT));
         }
         return typeText;
     }
