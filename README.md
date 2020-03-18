@@ -1,3 +1,6 @@
+# forked from tinselspoon/intellij-kubernetes 
+
+
 # Kubernetes support for IntelliJ
 Provides assistance for editing YAML files containing Kubernetes resources for IntelliJ IDEA.
 
