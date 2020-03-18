@@ -58,7 +58,7 @@ public class KubernetesYamlDocumentationProvider extends AbstractDocumentationPr
         final ResourceTypeKey resourceKey = KubernetesYamlPsiUtil.findResourceKey(element);
         if (resourceKey != null && element instanceof YAMLKeyValue) {
             final YAMLKeyValue keyValue = (YAMLKeyValue) element;
-            final Property property = KubernetesYamlPsiUtil.propertyForKey(modelProvider, resourceKey, keyValue);
+            final Property property = KubernetesYamlPsiUtil.traversePropertyForKey(modelProvider, resourceKey, keyValue);
             if (property != null) {
                 return new PropertyCompletionItem(keyValue.getKeyText(), property);
             }

@@ -168,7 +168,6 @@ public final class KubernetesYamlPsiUtil {
         return modelProvider.findProperties(resourceKey, keys).get(keyValue.getKeyText());
     }
 
-    //todo  change argument type PsiElement to YAMLPsiElement
     public static Map<String, Property> traversePropertiesForKey(final ModelProvider modelProvider, final ResourceTypeKey resourceKey, final PsiElement keyValue) {
         // Get the tree of keys leading up to this one
         final List<PathElement> keys = new ArrayList<>();
@@ -183,7 +182,6 @@ public final class KubernetesYamlPsiUtil {
                     //We have SequenceItem but Parent is not Sequence. Don't know what to do
                     return Collections.emptyMap();
                 }
-                final List<YAMLSequenceItem> items = ((YAMLSequence) parent).getItems();
                 Optional<PsiElement> firstChild = Arrays.stream(currentKey.getChildren()).filter(psiElement -> psiElement instanceof YAMLMapping).findFirst();
                 if (!(firstChild.isPresent())) {
                     // didn't find expected mapping block
@@ -197,6 +195,17 @@ public final class KubernetesYamlPsiUtil {
         // We have iterated from the inside out, so flip this around to get it in the correct direction for the ModelProvider
         Collections.reverse(keys);
         return modelProvider.traversePath(resourceKey, keys);
+    }
+
+    public static Property traversePropertyForKey(final ModelProvider modelProvider, final ResourceTypeKey resourceKey, final PsiElement keyValue) {
+        // Get the tree of keys leading up to this one
+        if (!(keyValue instanceof YAMLKeyValue)) {
+            return null;
+        }
+        final String key = ((YAMLKeyValue)keyValue).getKeyText();
+
+        Map<String, Property> stringPropertyMap = traversePropertiesForKey(modelProvider, resourceKey, keyValue);
+        return stringPropertyMap.get(key);
     }
 
     public static class PathElement {
