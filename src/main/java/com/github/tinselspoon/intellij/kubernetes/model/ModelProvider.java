@@ -1,5 +1,7 @@
 package com.github.tinselspoon.intellij.kubernetes.model;
 
+import com.github.tinselspoon.intellij.kubernetes.KubernetesYamlPsiUtil.PathElement;
+import com.github.tinselspoon.intellij.kubernetes.ResourceTypeKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,41 +10,26 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import com.github.tinselspoon.intellij.kubernetes.ResourceTypeKey;
 
 /**
  * Provides information on the schema of Kubernetes resources.
  */
 public class ModelProvider {
 
-    /** Singleton instance. */
+    public static final String RUNTIME_RAW_EXTENSION = "runtime.RawExtension";
+    /**
+     * Singleton instance.
+     */
     public static final ModelProvider INSTANCE = new ModelProvider();
 
     private final ModelLoader modelLoader = new ModelLoader();
 
-    /** Singleton private constructor. */
-    private ModelProvider() {
-    }
-
-
     /**
-     * Find the properties that may exist as children of the property described by navigating from the base model of the {@link ResourceTypeKey} through the properties given in the {@code path}.
-     *
-     * @param resourceTypeKey the resource at which to begin the search.
-     * @param path a series of properties to navigate through, may be empty to return the properties that may be defined on the root of the {@code ResourceTypeKey}.
-     * @return the map of property names to property specifications, may be empty if none can be found.
+     * Singleton private constructor.
      */
-    @NotNull
-    public Map<String, Property> findProperties(final ResourceTypeKey resourceTypeKey, final List<String> path) {
-        final SwaggerSpec spec = getSpec(resourceTypeKey);
-        if (spec != null) {
-            return findProperties(spec, resourceTypeKey, path);
-        }
-        return Collections.emptyMap();
+    private ModelProvider() {
     }
 
     /**
@@ -128,46 +115,34 @@ public class ModelProvider {
 
     @Nullable
     private Model findModel(SwaggerSpec spec, ResourceTypeKey resourceTypeKey, List<String> path) {
-        final String search = modelIdFromResourceKey(resourceTypeKey);
-        Model model = spec.getModels().get(search);
+        Model model = getModel(spec, resourceTypeKey);
         for (final String target : path) {
             if (model != null) {
                 final Property property = model.getProperties().get(target);
-                Model newModel = null;
-                if (property != null) {
-                    if (property.getRef() != null) {
-                        // Look up the ref for the referenced object
-                        newModel = spec.getModels().get(property.getRef());
-                    } else if (isArrayOfModels(property)) {
-                        // Look up the ref for the array items
-                        newModel = spec.getModels().get(property.getItems().getRef());
-                    }
-                }
-                model = newModel;
+                model = property != null ? getModelByProperty(spec, property) : null;
             }
         }
         return model;
     }
 
-    private boolean isArrayOfModels(@NotNull Property property) {
-        return property.getType() == FieldType.ARRAY && property.getItems() != null && property.getItems().getRef() != null;
+    @Nullable
+    private Model getModelByProperty(SwaggerSpec spec, Property property) {
+        if (property==null) {
+            return null;
+        }
+        Model newModel = null;
+        if (property.getRef() != null) {
+            // Look up the ref for the referenced object
+            newModel = spec.getModels().get(property.getRef());
+        } else if (isArrayOfModels(property)) {
+            // Look up the ref for the array items
+            newModel = spec.getModels().get(property.getItems().getRef());
+        }
+        return newModel;
     }
 
-    /**
-     * Find the properties that may exist as children of the property described by navigating from the base model of the {@link ResourceTypeKey} through the properties given in the {@code path}.
-     *
-     * @param spec the spec to search within.
-     * @param resourceTypeKey the resource at which to begin the search.
-     * @param path a series of properties to navigate through, may be empty to return the properties that may be defined on the root of the {@code ResourceTypeKey}.
-     * @return the map of property names to property specifications, may be empty if none can be found.
-     */
-    @NotNull
-    private Map<String, Property> findProperties(final SwaggerSpec spec, final ResourceTypeKey resourceTypeKey, final List<String> path) {
-        final Model model = findModel(spec, resourceTypeKey, path);
-        if (model != null && model.getProperties() != null) {
-            return model.getProperties();
-        }
-        return Collections.emptyMap();
+    public boolean isArrayOfModels(@NotNull Property property) {
+        return property.getType() == FieldType.ARRAY && property.getItems() != null && property.getItems().getRef() != null;
     }
 
     /**
@@ -180,7 +155,12 @@ public class ModelProvider {
     private SwaggerSpec getSpec(@NotNull final ResourceTypeKey resourceTypeKey) {
         final String apiVersion = resourceTypeKey.getApiVersion();
         final String modelId = modelIdFromResourceKey(resourceTypeKey);
-        return getSpecs().stream().filter(s -> apiVersion.equals(s.getApiVersion()) && s.getModels().containsKey(modelId)).findAny().orElse(null);
+        for (SwaggerSpec s : getSpecs()) {
+            if (apiVersion.equals(s.getApiVersion()) && s.getModels().containsKey(modelId)) {
+                return s;
+            }
+        }
+        return null;
     }
 
     /**
@@ -227,4 +207,86 @@ public class ModelProvider {
         }
     }
 
+
+    /**
+     * Find the properties that may exist as children of the property described by navigating from the base model of the {@link ResourceTypeKey} through the properties given in the {@code path}.
+     *
+     * @param resourceTypeKey the resource at which to begin the search.
+     * @param path a series of properties to navigate through, may be empty to return the properties that may be defined on the root of the {@code ResourceTypeKey}.
+     * @return the map of property names to property specifications, may be empty if none can be found.
+     */
+    @NotNull
+    public Map<String, Property> findProperties(final ResourceTypeKey resourceTypeKey, final List<String> path) {
+        final SwaggerSpec spec = getSpec(resourceTypeKey);
+        if (spec != null) {
+            return findProperties(spec, resourceTypeKey, path);
+        }
+        return Collections.emptyMap();
+    }
+
+
+    /**
+     * Find the properties that may exist as children of the property described by navigating from the base model of the {@link ResourceTypeKey} through the properties given in the {@code path}.
+     *
+     * @param spec the spec to search within.
+     * @param resourceTypeKey the resource at which to begin the search.
+     * @param path a series of properties to navigate through, may be empty to return the properties that may be defined on the root of the {@code ResourceTypeKey}.
+     * @return the map of property names to property specifications, may be empty if none can be found.
+     */
+    @NotNull
+    private Map<String, Property> findProperties(final SwaggerSpec spec, final ResourceTypeKey resourceTypeKey, final List<String> path) {
+        final Model model = findModel(spec, resourceTypeKey, path);
+        if (model != null && model.getProperties() != null) {
+            return model.getProperties();
+        }
+        return Collections.emptyMap();
+    }
+
+    @NotNull
+    public Map<String, Property> traversePath(final ResourceTypeKey resourceTypeKey, List<PathElement> path) {
+        Model model = null;
+        SwaggerSpec spec = null;
+        for (int i = 0, pathSize = path.size(); i < pathSize; i++) {
+            PathElement targetKey = path.get(i);
+            if (model == null || RUNTIME_RAW_EXTENSION.equals(model.getId())) {
+                ResourceTypeKey key = targetKey.getResourceTypeKey();
+                if (key != null) {
+                    spec = getSpec(key);
+                    if (spec == null) {
+                        return Collections.emptyMap();
+                    }
+                    model = getModel(spec, key);
+                }
+                if (model == null) {
+                    return Collections.emptyMap();
+                }
+                continue;
+            }
+            Map<String, Property> properties = model.getProperties();
+            if (targetKey.getKey() == null) {
+                continue;
+            }
+            final Property property = properties.get(targetKey.getKey());
+            if (property == null) {
+                if(i != pathSize-1) {
+                    model = null;
+                }
+                break;
+            }
+
+            model = getModelByProperty(spec, property);
+            if (model == null) {
+                return Collections.emptyMap();
+            }
+        }
+        if (model == null) {
+            return Collections.emptyMap();
+        }
+        return model.getProperties();
+    }
+
+    private Model getModel(SwaggerSpec spec, ResourceTypeKey resourceTypeKey) {
+        final String search = modelIdFromResourceKey(resourceTypeKey);
+        return spec.getModels().get(search);
+    }
 }

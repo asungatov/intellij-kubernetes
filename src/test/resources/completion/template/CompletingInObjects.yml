@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: template
+  annotations:
+    description: "Description"
+objects:
+  - <caret>
+parameters:
+labels:

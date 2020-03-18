@@ -1,5 +1,7 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
+import com.github.tinselspoon.intellij.kubernetes.config.ConfigState;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import java.util.List;
 
@@ -116,5 +118,46 @@ public class CompletionTest extends BasePlatformTestCase {
         // THEN we should see a the fields appropriate to the Pod
         assertNotNull(strings);
         assertSameElements(strings, "apiVersion", "kind", "metadata", "spec", "status");
+    }
+
+//
+//    public void testCompletingInObjects() {
+//        // GIVEN a file containing just the kind field
+//        myFixture.configureByFiles("template/CompletingInObjects.yml");
+//
+//        // WHEN activating completion with the caret at the kind field
+//        myFixture.completeBasic();
+//        final List<String> strings = myFixture.getLookupElementStrings();
+//
+//        // THEN we should see a list of resource kinds - try a few from different API versions
+//        assertNotNull(strings);
+//        assertContainsElements(strings, "kind", "apiVersion");
+//    }
+
+//    public void testCompletingKindInObjects() {
+//        // GIVEN a file containing just the kind field
+//        myFixture.configureByFiles("template/CompletingKindInObjects.yml");
+//
+//        // WHEN activating completion with the caret at the kind field
+//        myFixture.completeBasic();
+//        final List<String> strings = myFixture.getLookupElementStrings();
+//
+//        // THEN we should see a list of resource kinds - try a few from different API versions
+//        assertNotNull(strings);
+//        assertContainsElements(strings, "Pod", "Deployment", "Job");
+//    }
+
+
+    public void testCompletingObjects() {
+        ConfigState service = ServiceManager.getService(ConfigState.class);
+        service.getOpenshiftPackage().setEnabled(true);
+
+        myFixture.configureByFiles("template/CompletingObjects.yml");
+
+        myFixture.completeBasic();
+        final List<String> strings = myFixture.getLookupElementStrings();
+
+        assertNotNull(strings);
+        assertContainsElements(strings, "name", "namespace");
     }
 }

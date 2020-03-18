@@ -1,11 +1,19 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
+import com.github.tinselspoon.intellij.kubernetes.model.Model;
+import com.github.tinselspoon.intellij.kubernetes.model.ModelProvider;
+import com.github.tinselspoon.intellij.kubernetes.model.Property;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.util.PsiTreeUtil;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-
+import java.util.regex.Pattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.yaml.YAMLUtil;
@@ -13,21 +21,19 @@ import org.jetbrains.yaml.psi.YAMLDocument;
 import org.jetbrains.yaml.psi.YAMLFile;
 import org.jetbrains.yaml.psi.YAMLKeyValue;
 import org.jetbrains.yaml.psi.YAMLMapping;
+import org.jetbrains.yaml.psi.YAMLPsiElement;
+import org.jetbrains.yaml.psi.YAMLSequence;
+import org.jetbrains.yaml.psi.YAMLSequenceItem;
 import org.jetbrains.yaml.psi.YAMLValue;
-
-import com.github.tinselspoon.intellij.kubernetes.model.Model;
-import com.github.tinselspoon.intellij.kubernetes.model.ModelProvider;
-import com.github.tinselspoon.intellij.kubernetes.model.Property;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.util.PsiTreeUtil;
 
 /**
  * Utilities for working with YAML-based Kubernetes resource documents.
  */
 public final class KubernetesYamlPsiUtil {
 
-    /** Static class private constructor. */
+    /**
+     * Static class private constructor.
+     */
     private KubernetesYamlPsiUtil() {
         // no construction
     }
@@ -42,14 +48,36 @@ public final class KubernetesYamlPsiUtil {
     public static ResourceTypeKey findResourceKey(final PsiElement element) {
         // Get the top-level mapping
         final YAMLMapping topLevelMapping = getTopLevelMapping(element);
-        final String apiVersion = getValueText(topLevelMapping, "apiVersion");
-        final String kind = getValueText(topLevelMapping, "kind");
-        if (apiVersion != null && kind != null) {
+        return getResourceTypeKey(topLevelMapping);
+    }
+
+    @Nullable
+    public static ResourceTypeKey getResourceTypeKey(YAMLMapping yamlMapping) {
+        if (yamlMapping == null) {
+            return null;
+        }
+        String apiVersion = "";
+        String kind = "";
+        final String regex = "\\s*IntellijIdeaRulezzz\\s*";
+        final Pattern pattern = Pattern.compile(regex);
+        for (YAMLKeyValue keyValue : yamlMapping.getKeyValues()) {
+
+            String keyText = pattern.matcher(keyValue.getKeyText()).replaceAll("");
+            if ("apiVersion".equals(keyText)) {
+                apiVersion = keyValue.getValueText().trim();
+            }
+            if ("kind".equals(keyText)) {
+                kind = keyValue.getValueText().trim();
+            }
+        }
+
+        if (!apiVersion.isEmpty() && !kind.isEmpty()) {
             return new ResourceTypeKey(apiVersion, kind);
         } else {
             return null;
         }
     }
+
 
     /**
      * Gets the top-level mapping in the document, if present.
@@ -138,5 +166,66 @@ public final class KubernetesYamlPsiUtil {
         // We have iterated from the inside out, so flip this around to get it in the correct direction for the ModelProvider
         Collections.reverse(keys);
         return modelProvider.findProperties(resourceKey, keys).get(keyValue.getKeyText());
+    }
+
+    //todo  change argument type PsiElement to YAMLPsiElement
+    public static Map<String, Property> traversePropertiesForKey(final ModelProvider modelProvider, final ResourceTypeKey resourceKey, final PsiElement keyValue) {
+        // Get the tree of keys leading up to this one
+        final List<PathElement> keys = new ArrayList<>();
+        PsiElement lastKey = keyValue;
+        PsiElement currentKey;
+        while ((currentKey = PsiTreeUtil.getParentOfType(lastKey, YAMLKeyValue.class, YAMLSequenceItem.class)) != null) {
+            if (currentKey instanceof YAMLKeyValue) {
+                keys.add(new PathElement((YAMLKeyValue) currentKey));
+            } else if (currentKey instanceof YAMLSequenceItem) {
+                final PsiElement parent = currentKey.getParent();
+                if (!(parent instanceof YAMLSequence)) {
+                    //We have SequenceItem but Parent is not Sequence. Don't know what to do
+                    return Collections.emptyMap();
+                }
+                final List<YAMLSequenceItem> items = ((YAMLSequence) parent).getItems();
+                Optional<PsiElement> firstChild = Arrays.stream(currentKey.getChildren()).filter(psiElement -> psiElement instanceof YAMLMapping).findFirst();
+                if (!(firstChild.isPresent())) {
+                    // didn't find expected mapping block
+                    return Collections.emptyMap();
+                }
+                keys.add(new PathElement((YAMLMapping) firstChild.get()));
+            }
+            lastKey = currentKey;
+        }
+        keys.add(new PathElement(getTopLevelMapping(lastKey)));
+        // We have iterated from the inside out, so flip this around to get it in the correct direction for the ModelProvider
+        Collections.reverse(keys);
+        return modelProvider.traversePath(resourceKey, keys);
+    }
+
+    public static class PathElement {
+
+        YAMLPsiElement yamlPsiElement;
+
+        public PathElement(YAMLPsiElement yamlPsiElement) {
+            this.yamlPsiElement = yamlPsiElement;
+        }
+
+        public String getKey() {
+            if (yamlPsiElement instanceof YAMLKeyValue) {
+                return ((YAMLKeyValue) yamlPsiElement).getKeyText();
+            }
+            return null;
+        }
+
+        public ResourceTypeKey getResourceTypeKey() {
+            if (yamlPsiElement instanceof YAMLMapping) {
+                return KubernetesYamlPsiUtil.getResourceTypeKey((YAMLMapping) yamlPsiElement);
+            }
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return "PathElement{" +
+                    "yamlPsiElement=" + yamlPsiElement +
+                    '}';
+        }
     }
 }

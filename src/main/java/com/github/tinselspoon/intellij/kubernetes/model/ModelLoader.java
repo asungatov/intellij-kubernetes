@@ -48,8 +48,8 @@ class ModelLoader {
         assert callerClass != null;
         final ClassLoader classLoader = callerClass.getClassLoader();
         final List<SwaggerSpec> activeSpecs = new ArrayList<>();
-        activeSpecs.addAll(getSpecsFromApiPackage(classLoader, configState.getKubernetesPackage(), "kubernetes", DEFAULT_KUBERNETES_VERSION));
         activeSpecs.addAll(getSpecsFromApiPackage(classLoader, configState.getOpenshiftPackage(), "openshift", DEFAULT_OPENSHIFT_VERSION));
+        activeSpecs.addAll(getSpecsFromApiPackage(classLoader, configState.getKubernetesPackage(), "kubernetes", DEFAULT_KUBERNETES_VERSION));
         return activeSpecs;
     }
 

@@ -21,6 +21,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.PlatformIcons;
 import com.intellij.util.ProcessingContext;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Map.Entry;
 import javax.swing.Icon;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,7 @@ import org.jetbrains.yaml.psi.YAMLMapping;
 
 /** The main actor in generating completion suggestions. */
 class KubernetesYamlCompletionProvider extends CompletionProvider<CompletionParameters> {
+
     @Override
     protected void addCompletions(@NotNull final CompletionParameters completionParameters, final ProcessingContext processingContext, @NotNull final CompletionResultSet resultSet) {
         // Make sure we are actually in a document that resembles a Kubernetes resource before offering completion
@@ -41,50 +43,56 @@ class KubernetesYamlCompletionProvider extends CompletionProvider<CompletionPara
         // Get the current key/value being worked on
         final ModelProvider modelProvider = ModelProvider.INSTANCE;
         final YAMLMapping topLevelMapping = KubernetesYamlPsiUtil.getTopLevelMapping(element);
-        final YAMLKeyValue keyValue = PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
+        final YAMLKeyValue enclosingKeyValue = PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
 
         // Try and find the resource key which will aid our completion
-        final ResourceTypeKey resourceKey = KubernetesYamlPsiUtil.findResourceKey(element);
+        final ResourceTypeKey resourceTypeKey = KubernetesYamlPsiUtil.findResourceKey(element);
 
-        // We must be at the very top level if there is no enclosing keyValue
-        if (keyValue == null) {
-            if (resourceKey == null) {
+        // We must be at the very top level if there is no enclosing enclosingKeyValue
+        if (enclosingKeyValue == null) {
+            if (resourceTypeKey == null) {
                 // If we don't know what the resource type is, add the "apiVersion" and "kind" fields which will be applicable to all resources
                 resultSet.addElement(createKeyLookupElement("apiVersion", false));
                 resultSet.addElement(createKeyLookupElement("kind", false));
             } else {
                 // If we do know the resource type, add the fields relevant to that resource
-                modelProvider.findProperties(resourceKey, Collections.emptyList()).forEach((key, value) -> resultSet.addElement(createKeyLookupElement(key, value)));
+                //top level properties
+                modelProvider.findProperties(resourceTypeKey, Collections.emptyList()).forEach((key, value) -> resultSet.addElement(createKeyLookupElement(key, value)));
             }
         } else {
             // The "apiVersion" and "kind" fields on the top level are special cases where we have to calculate the completion
-            if (isTopLevelMapping(keyValue)) {
-                if ("apiVersion".equals(keyValue.getKeyText())) {
+            if (isTopLevelMapping(enclosingKeyValue)) {
+                if ("apiVersion".equals(enclosingKeyValue.getKeyText())) {
                     for (final String apiVersion : modelProvider.suggestApiVersions()) {
                         resultSet.addElement(
                                 LookupElementBuilder.create(apiVersion).withIcon(PlatformIcons.PACKAGE_ICON));
                     }
-                } else if ("kind".equals(keyValue.getKeyText())) {
+                } else if ("kind".equals(enclosingKeyValue.getKeyText())) {
                     final String apiVersion = KubernetesYamlPsiUtil.getValueText(topLevelMapping, "apiVersion");
                     for (final ResourceTypeKey kind : modelProvider.suggestKinds(apiVersion)) {
                         final String kindApiVersion = kind.getApiVersion();
                         // Add on the apiVersion
                         resultSet.addElement(LookupElementBuilder.create(kind.getKind())
-                                                                 .withTypeText(kindApiVersion, true)
-                                                                 .withIcon(PlatformIcons.CLASS_ICON)
-                                                                 .withInsertHandler((insertionContext, lookupElement) -> {
-                                                                     if (topLevelMapping == null || topLevelMapping.getKeyValueByKey("apiVersion") == null) {
-                                                                         EditorModificationUtil.insertStringAtCaret(insertionContext.getEditor(), "\napiVersion: " + kindApiVersion + "\n");
-                                                                     }
-                                                                 }));
+                                .withTypeText(kindApiVersion, true)
+                                .withIcon(PlatformIcons.CLASS_ICON)
+                                .withInsertHandler((insertionContext, lookupElement) -> {
+                                    if (topLevelMapping == null || topLevelMapping.getKeyValueByKey("apiVersion") == null) {
+                                        EditorModificationUtil.insertStringAtCaret(insertionContext.getEditor(), "\napiVersion: " + kindApiVersion + "\n");
+                                    }
+                                }));
                     }
                 }
             }
 
-            if (resourceKey != null) {
-                addValueSuggestionsForKey(modelProvider, resultSet, resourceKey, keyValue);
+
+            if (resourceTypeKey != null) {
+                Map<String, Property> properties = KubernetesYamlPsiUtil.traversePropertiesForKey(modelProvider, resourceTypeKey, element);
+                properties.forEach((key, value) -> resultSet.addElement(createKeyLookupElement(key, value)));
+
+                addValueSuggestionsForKey(modelProvider, resultSet, resourceTypeKey, enclosingKeyValue);
             }
         }
+
     }
     /**
      * Gets whether a given {@link YAMLKeyValue} is at the root level of the document.
@@ -107,15 +115,9 @@ class KubernetesYamlCompletionProvider extends CompletionProvider<CompletionPara
     private static void addValueSuggestionsForKey(@NotNull final ModelProvider modelProvider, final @NotNull CompletionResultSet resultSet, @NotNull final ResourceTypeKey resourceKey,
             @NotNull final YAMLKeyValue keyValue) {
         final Property keyProperty = KubernetesYamlPsiUtil.propertyForKey(modelProvider, resourceKey, keyValue);
-        final Model keyModel = KubernetesYamlPsiUtil.modelForKey(modelProvider, resourceKey, keyValue);
         if (keyProperty != null && keyProperty.getType() == FieldType.BOOLEAN) {
             resultSet.addElement(LookupElementBuilder.create("true").withBoldness(true));
             resultSet.addElement(LookupElementBuilder.create("false").withBoldness(true));
-        }
-        if (keyModel != null) {
-            for (final Entry<String, Property> property : keyModel.getProperties().entrySet()) {
-                resultSet.addElement(createKeyLookupElement(property.getKey(), property.getValue()));
-            }
         }
     }
     /**
