@@ -69,6 +69,7 @@ public class KubernetesConfigurable implements Configurable {
         enableKubernetesCompletion.addActionListener(e -> updateEnabled());
         enableOpenshiftCompletion.addActionListener(e -> updateEnabled());
         kubernetesVersions.addItem(LATEST_API_VERSION_ITEM);
+        kubernetesVersions.addItem("1.11");
         kubernetesVersions.addItem("1.9");
         kubernetesVersions.addItem("1.8");
         kubernetesVersions.addItem("1.7");
@@ -78,6 +79,7 @@ public class KubernetesConfigurable implements Configurable {
         kubernetesVersions.addItem("1.3");
         kubernetesVersions.addItem("1.2");
         openshiftVersions.addItem(LATEST_API_VERSION_ITEM);
+        openshiftVersions.addItem("3.11");
         openshiftVersions.addItem("3.6");
         openshiftVersions.addItem("1.5");
         openshiftVersions.addItem("1.4");
