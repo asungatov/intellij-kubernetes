@@ -18,11 +18,11 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version '2019.3.3'
+    version '2019.3.2'
     plugins 'yaml'
 }
 patchPluginXml {
     changeNotes """
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>"""
+      Basic OpenShift Template Support
+  """
 }
