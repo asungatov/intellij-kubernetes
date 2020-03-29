@@ -11,3 +11,12 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+
+deploy:
+  provider: releases
+  api_key: ${GITHUB_KEY}
+  skip_cleanup: true
+  file_glob: true
+  file: "build/distributions/intellij-kubernetes-*.zip"
+  on:
+    branch: master
