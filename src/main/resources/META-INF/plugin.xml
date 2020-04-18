@@ -4,7 +4,7 @@
     <version>0.9</version>
     <vendor url="https://github.com/tinselspoon">Nick Tinsley</vendor>
 
-    <idea-version since-build="162" />
+    <idea-version since-build="193" />
 
     <description><![CDATA[
       Provides assistance for editing YAML files containing Kubernetes resources. Optionally adds support for OpenShift resources in addition to native Kubernetes resources.
