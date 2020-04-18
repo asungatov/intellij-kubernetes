@@ -112,7 +112,7 @@ public class KubernetesConfigurable implements Configurable {
     public void reset() {
         // Substitute defaults if not yet set
         final boolean enableKubernetes = Optional.of(configState.getKubernetesPackage()).map(ApiPackage::getEnabled).orElse(true);
-        final boolean enableOpenshift = Optional.of(configState.getOpenshiftPackage()).map(ApiPackage::getEnabled).orElse(false);
+        final boolean enableOpenshift = Optional.of(configState.getOpenshiftPackage()).map(ApiPackage::getEnabled).orElse(true);
         final String kubernetesVersion = Optional.of(configState.getKubernetesPackage()).map(ApiPackage::getVersion).orElse(LATEST_API_VERSION_ITEM);
         final String openshiftVersion = Optional.of(configState.getOpenshiftPackage()).map(ApiPackage::getVersion).orElse(LATEST_API_VERSION_ITEM);
         enableKubernetesCompletion.setSelected(enableKubernetes);

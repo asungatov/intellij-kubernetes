@@ -19,7 +19,7 @@ public class ConfigState implements PersistentStateComponent<ConfigState> {
     private ApiPackage kubernetesPackage = new ApiPackage(true, null);
 
     /** The configuration for OpenShift. */
-    private ApiPackage openshiftPackage = new ApiPackage(false, null);
+    private ApiPackage openshiftPackage = new ApiPackage(true, null);
 
     @Override
     public boolean equals(final Object o) {
