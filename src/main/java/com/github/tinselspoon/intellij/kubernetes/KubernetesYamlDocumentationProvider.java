@@ -1,5 +1,6 @@
 package com.github.tinselspoon.intellij.kubernetes;
 
+import java.util.regex.Pattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.yaml.psi.YAMLKeyValue;
@@ -16,6 +17,7 @@ import com.intellij.psi.impl.light.LightElement;
  * Provides documentation for Kubernetes resources by matching properties to the corresponding schema definitions.
  */
 public class KubernetesYamlDocumentationProvider extends AbstractDocumentationProvider {
+    private Pattern urlPattern = Pattern.compile("(https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_+.~#?&/=]*))");
     @Override
     public String generateDoc(final PsiElement element, @Nullable final PsiElement originalElement) {
         if (!(element instanceof DocElement) && !KubernetesYamlPsiUtil.isKubernetesFile(element)) {
@@ -31,7 +33,8 @@ public class KubernetesYamlDocumentationProvider extends AbstractDocumentationPr
         }
         if (targetProperty != null) {
             final String type = ModelUtil.typeStringFor(targetProperty.getProperty());
-            final String description = targetProperty.getProperty().getDescription();
+            String description = targetProperty.getProperty().getDescription();
+            description = description == null ? "" : urlPattern.matcher(description).replaceAll("<a href=\"$1\">$1</a>");
             return String.format("<b>%s</b> <code>(%s)</code><p>%s", targetProperty.getName(), type, description);
         }
         return null;
